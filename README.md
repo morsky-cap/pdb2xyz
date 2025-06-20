@@ -1,10 +1,9 @@
-# PDB2XYZ
+# Convert PDB → Coarse grined XYZ files
 
-Tool to convert atomistic protein structures to
-a coarse grained representation where residues
-are described by one or two beads only.
-Meant to be used with Duello and/or Faunus with
-e.g. the Calvados force field.
+Tool to convert atomistic protein structures to coarse grained representations where residues
+are reduced to one or two interactions siters.
+Meant to construct models for use with the Calvados force field in the
+Duello and Faunus software.
 
 ## Features
 
@@ -12,9 +11,14 @@ e.g. the Calvados force field.
 - Optional off-center sites for ionizable side-chains
 - N and C terminal handling
 - SS-bond handling
-- Create atom file definitions file for Duello / Faunus
-- Partial charge approximation
+- Partial charge approximation according to pH
 - Create Calvados3 atom list for Duello / Faunus
+
+## Install
+
+```sh
+pip install pdb2xyz
+```
 
 ## Usage
 

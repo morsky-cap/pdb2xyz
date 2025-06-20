@@ -34,24 +34,24 @@ def parse_args():
         "--atomfile",
         type=str,
         required=False,
-        help="Template file path",
+        help="Output atomfile path (default: atoms.yaml)",
         default="atoms.yaml",
     )
 
     parser.add_argument(
-        "--pH", type=float, required=False, help="pH value (float)", default=7.0
+        "--pH", type=float, required=False, help="pH value (default: 7.0)", default=7.0
     )
     parser.add_argument(
         "--alpha",
         type=float,
         required=False,
-        help="Excess polarizability (float)",
+        help="Excess polarizability (default: 0.0)",
         default=0.0,
     )
     parser.add_argument(
         "--sidechains",
         action="store_true",
-        help="Off-center ionizable sidechains (flag)",
+        help="Off-center ionizable sidechains (default: disabled)",
         default=False,
     )
     return parser.parse_args()
