@@ -14,4 +14,8 @@ dependencies = [
 ]
 
 [project.scripts]
-mycmd = "pdb2xyz.main:main"
+pdb2xyz = "pdb2xyz.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
