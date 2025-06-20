@@ -13,19 +13,7 @@
         "molecular simulation",
         "coarse graining"
     ],
-    "related_identifiers": [
-        {
-            "scheme": "url",
-            "identifier": "https://github.com/mlund/faunus-rs",
-            "relation": "isSupplementTo"
-        },
-        {
-            "scheme": "url",
-            "identifier": "https://github.com/mlund/duello",
-            "relation": "isSupplementTo"
-        }
-    ],
-    "license": "apache-license",
     "access_right": "open",
-    "upload_type": "software"
+    "upload_type": "software",
+    "license" : "apache-2.0"
 }
