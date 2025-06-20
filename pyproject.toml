@@ -1,0 +1,17 @@
+[project]
+name = "pdb2xyz"
+version = "0.1.0"
+description = "Convert PDB structures to coarse grained XYZ files"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Mikael Lund"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "jinja2>=3.1.6",
+    "mdtraj>=1.10.3",
+]
+
+[project.scripts]
+mycmd = "pdb2xyz.main:main"
