@@ -7,7 +7,7 @@ license = {text = "Apache-2.0"}
 authors = [
     {name = "Mikael Lund"}
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "jinja2>=3.1.6",
     "mdtraj>=1.10.3",
