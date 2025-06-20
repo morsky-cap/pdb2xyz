@@ -1,6 +1,6 @@
-# Convert PDB → Coarse grined XYZ files
+# Convert PDB → Coarse Grained XYZ files
 
-Tool to convert atomistic protein structures to coarse grained representations where residues
+`pdb2xy` is a tool to convert atomistic protein structures to coarse grained representations where residues
 are reduced to one or two interactions siters.
 Meant to construct models for use with the Calvados force field in the
 Duello and Faunus software.
@@ -30,7 +30,7 @@ Convert PDB files to coarse grained XYZ format with one or two beads per residue
 options:
   -h, --help            show this help message and exit
   -i INFILE, --infile INFILE
-                        Input PDB file path
+                        Input PDB/GRO/XYZ file path
   -o OUTFILE, --outfile OUTFILE
                         Output XYZ file path
   -a ATOMFILE, --atomfile ATOMFILE
