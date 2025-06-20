@@ -1,6 +1,6 @@
 [project]
 name = "pdb2xyz"
-version = "0.1.1"
+version = "0.1.2"
 description = "Convert PDB structures to coarse grained XYZ files"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pdb2xyz = "pdb2xyz.main:main"
+pdb2xyz = "pdb2xyz:main"
 
 [build-system]
 requires = ["hatchling"]
