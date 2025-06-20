@@ -1,0 +1,31 @@
+{
+    "title": "Protein Coarse Graining Tool: pdb2xyz",
+    "description": "pdb2xyz is a small command line tool to coarse grain atomic protein structures (PDB, GRO, etc.) into coarse grained representations with one or two interaction sites. The tool also generates atom definitions for e.g. the Calvados3 force field, including pH-dependent partial charges. N and C terminal ends as well as S-S bonds are handled. Ionizable side-chains can optionally be placed off-center.",
+    "creators": [
+        {
+            "name": "Mikael Lund",
+            "affiliation": "Division of Computational Chemistry, Department of Chemistry, Lund University, Sweden",
+            "orcid": "0000-0001-8178-8175"
+        }
+    ],
+    "keywords": [
+        "protein structure",
+        "molecular simulation",
+        "coarse graining"
+    ],
+    "related_identifiers": [
+        {
+            "scheme": "url",
+            "identifier": "https://github.com/mlund/faunus-rs",
+            "relation": "isSupplementTo"
+        },
+        {
+            "scheme": "url",
+            "identifier": "https://github.com/mlund/duello",
+            "relation": "isSupplementTo"
+        }
+    ],
+    "license": "apache-license",
+    "access_right": "open",
+    "upload_type": "software"
+}
