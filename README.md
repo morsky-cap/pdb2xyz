@@ -11,7 +11,7 @@ Meant to construct models for use with the Calvados force field in the Duello an
 - N and C terminal handling
 - SS-bond handling
 - Partial charge approximation according to pH
-- Create Calvados3 atom list for Duello / Faunus
+- Create Calvados3 topology for Duello
 
 ## Install
 
@@ -22,18 +22,17 @@ pip install pdb2xyz
 ## Usage
 
 ```sh
-usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-a ATOMFILE] [--pH PH] [--alpha ALPHA] [--sidechains]
+usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains]
 
-Convert PDB files to coarse grained XYZ format with one or two beads per residue
+Convert PDB files to XYZ format
 
 options:
   -h, --help            show this help message and exit
   -i INFILE, --infile INFILE
-                        Input PDB/GRO/XYZ file path
+                        Input PDB file path
   -o OUTFILE, --outfile OUTFILE
                         Output XYZ file path
-  -a ATOMFILE, --atomfile ATOMFILE
-                        Output atomfile path (default: atoms.yaml)
+  -t TOP, --top TOP     Output topology path (default: topology.yaml)
   --pH PH               pH value (default: 7.0)
   --alpha ALPHA         Excess polarizability (default: 0.0)
   --sidechains          Off-center ionizable sidechains (default: disabled)

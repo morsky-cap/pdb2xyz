@@ -30,12 +30,12 @@ def parse_args():
         "-o", "--outfile", type=str, required=True, help="Output XYZ file path"
     )
     parser.add_argument(
-        "-a",
-        "--atomfile",
+        "-t",
+        "--top",
         type=str,
         required=False,
-        help="Output atomfile path (default: atoms.yaml)",
-        default="atoms.yaml",
+        help="Output topology path (default: topology.yaml)",
+        default="topology.yaml",
     )
 
     parser.add_argument(
@@ -146,13 +146,13 @@ def add_sidechain(traj, res):
     return None
 
 
-def write_atom_file(output_path: str, context: dict):
-    """Render and write the atom file template."""
+def write_topology(output_path: str, context: dict):
+    """Render and write the topology template."""
     template = calvados_template()
     rendered = jinja2.Template(template).render(context)
-    with open(output_path, "w") as atom_file:
-        atom_file.write(rendered)
-        logging.info(f"Atom file written to {output_path}")
+    with open(output_path, "w") as file:
+        file.write(rendered)
+        logging.info(f"Topology written to {output_path}")
 
 
 def main():
@@ -165,7 +165,7 @@ def main():
         "alpha": args.alpha,
         "sidechains": args.sidechains,
     }
-    write_atom_file(args.atomfile, context)
+    write_topology(args.top, context)
 
 
 def calvados_template():
@@ -215,6 +215,13 @@ atoms:
   - {charge: 0.0, hydrophobicity: !Lambda 0.8906449355499866, mass: 147.18, name: PHE, σ: 6.36, ε: 0.8368}
   - {charge: {{ "%.2f" % (zCYS * f) }}, hydrophobicity: !Lambda 0.5922529084601322, mass: 103.14, name: CYS, σ: 5.48, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
   - {charge: 0.0, hydrophobicity: !Lambda 0.5922529084601322, mass: 103.14, name: CSS, σ: 5.48, ε: 0.8368}
+
+system:
+  energy:
+    nonbonded:
+      # Note that a Coulomb term is automatically added, so don't specify one here!
+      default:
+        - !AshbaughHatch {mixing: arithmetic, cutoff: 20.0}
 """
 
 
