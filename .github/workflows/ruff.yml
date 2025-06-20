@@ -1,3 +1,17 @@
-- name: ruff-action
+name: Ruff
 
-  uses: astral-sh/ruff-action@v3.4.0
+on:
+  push:
+    paths:
+      - '**.py'
+  pull_request:
+    paths:
+      - '**.py'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ruff-action
+        uses: astral-sh/ruff-action@v3.4.0
