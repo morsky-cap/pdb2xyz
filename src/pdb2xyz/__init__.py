@@ -120,7 +120,7 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool):
 
     with open(output_xyz_file, "w") as f:
         f.write(f"{len(residues)}\n")
-        f.write(f"Converted with Duello pdb2xyz.py using input file {pdb_file}\n")
+        f.write(f"Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n")
         for i in residues:
             f.write(f"{i['name']} {i['cm'][0]:.3f} {i['cm'][1]:.3f} {i['cm'][2]:.3f}\n")
         logging.info(
@@ -168,16 +168,17 @@ def main():
     write_topology(args.top, context)
 
 
+# Average pKa values from https://doi.org/10.1093/database/baz024
 def calvados_template():
     return """
 {%- set f = 1.0 - sidechains -%}
-{%- set zCTR = - 10**(pH-2.0) / (1 + 10**(pH-2.0)) -%}
-{%- set zASP = - 10**(pH-3.9) / (1 + 10**(pH-3.9)) -%}
-{%- set zGLU = - 10**(pH-4.2) / (1 + 10**(pH-4.2)) -%}
-{%- set zCYS = 10**(pH-8.3) / (1 + 10**(pH-8.3)) -%}
-{%- set zHIS = 1 - 10**(pH-6.0) / (1 + 10**(pH-6.0)) -%}
-{%- set zNTR = 1 - 10**(pH-9.0) / (1 + 10**(pH-9.0)) -%}
-{%- set zLYS = 1 - 10**(pH-10.4) / (1 + 10**(pH-10.4)) -%}
+{%- set zCTR = - 10**(pH-3.16) / (1 + 10**(pH-3.16)) -%}
+{%- set zASP = - 10**(pH-3.43) / (1 + 10**(pH-3.43)) -%}
+{%- set zGLU = - 10**(pH-4.14) / (1 + 10**(pH-4.14)) -%}
+{%- set zCYS = 10**(pH-6.25) / (1 + 10**(pH-6.25)) -%}
+{%- set zHIS = 1 - 10**(pH-6.45) / (1 + 10**(pH-6.45)) -%}
+{%- set zNTR = 1 - 10**(pH-7.64) / (1 + 10**(pH-7.64)) -%}
+{%- set zLYS = 1 - 10**(pH-10.68) / (1 + 10**(pH-10.68)) -%}
 {%- set zARG = 1 - 10**(pH-12.5) / (1 + 10**(pH-12.5)) -%}
 comment: "Calvados 3 coarse grained amino acid model for use with Duello / Faunus"
 pH: {{ pH }}

@@ -10,7 +10,8 @@ Meant to construct models for use with the Calvados force field in the Duello an
 - Optional off-center sites for ionizable side-chains
 - N and C terminal handling
 - SS-bond handling
-- Partial charge approximation according to pH
+- Partial charge approximation according to pH using
+[average residue pKa values](https://doi.org/10.1093/database/baz024)
 - Create Calvados3 topology for [Duello](https://github.com/mlund/duello)
 
 ## Install
