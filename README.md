@@ -11,7 +11,7 @@ Meant to construct models for use with the Calvados force field in the Duello an
 - N and C terminal handling
 - SS-bond handling
 - Partial charge approximation according to pH
-- Create Calvados3 topology for Duello
+- Create Calvados3 topology for [Duello](https://github.com/mlund/duello)
 
 ## Install
 
