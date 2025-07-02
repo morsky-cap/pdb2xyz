@@ -54,6 +54,15 @@ def parse_args():
         help="Off-center ionizable sidechains (default: disabled)",
         default=False,
     )
+    # take list of chain IDs to include (list of strings)
+    parser.add_argument(
+        "--chains",
+        type=str,
+        nargs="*",
+        required=False,
+        help="List of chain IDs to include (default: all chains)",
+        default=None,
+    )
     return parser.parse_args()
 
 
@@ -78,13 +87,16 @@ def ssbonds(traj):
     return set(res for pair in ss_bonds for res in pair)
 
 
-def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool):
+def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, chains=None):
     """Convert PDB to coarse grained XYZ file; one bead per amino acid"""
     traj = md.load_pdb(pdb_file, frame=0)
     cys_with_ssbond = ssbonds(traj)
     residues = []
     for res in traj.topology.residues:
         if not res.is_protein:
+            continue
+
+        if chains is not None and res.chain.chain_id not in chains:
             continue
 
         cm = [0.0, 0.0, 0.0]  # residue mass center
@@ -120,7 +132,9 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool):
 
     with open(output_xyz_file, "w") as f:
         f.write(f"{len(residues)}\n")
-        f.write(f"Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n")
+        f.write(
+            f"Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n"
+        )
         for i in residues:
             f.write(f"{i['name']} {i['cm'][0]:.3f} {i['cm'][1]:.3f} {i['cm'][2]:.3f}\n")
         logging.info(
@@ -130,19 +144,22 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool):
 
 def add_sidechain(traj, res):
     """Add sidechain bead for ionizable amino acids"""
+    # Map residue and atom names to sidechain bead names
+    sidechain_map = {
+        ("ASP", "OD1"): "Dsc",
+        ("GLU", "OE1"): "Esc",
+        ("ARG", "CZ"): "Rsc",
+        ("LYS", "NZ"): "Ksc",
+        ("HIS", "NE2"): "Hsc",
+        ("CYS", "SG"): "Csc",
+    }
     for atom in res.atoms:
-        # Map residue and atom names to sidechain bead names
-        sidechain_map = {
-            ("ASP", "OD1"): "Dsc",
-            ("GLU", "OE1"): "Esc",
-            ("ARG", "CZ"): "Rsc",
-            ("LYS", "NZ"): "Ksc",
-            ("HIS", "NE2"): "Hsc",
-            ("CYS", "SG"): "Csc",
-        }
         bead_name = sidechain_map.get((res.name, atom.name))
         if bead_name:
             return dict(name=bead_name, cm=traj.xyz[0][atom.index] * 10)
+
+    if res.name in ["ASP", "GLU", "ARG", "LYS", "HIS", "CYS"]:
+        logging.warning(f"Missing sidechain bead for {res.name}{res.index}")
     return None
 
 
@@ -158,7 +175,7 @@ def write_topology(output_path: str, context: dict):
 def main():
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
-    convert_pdb(args.infile, args.outfile, args.sidechains)
+    convert_pdb(args.infile, args.outfile, args.sidechains, args.chains)
 
     context = {
         "pH": args.pH,

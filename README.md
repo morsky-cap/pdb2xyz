@@ -22,6 +22,9 @@ pip install pdb2xyz
 
 ## Usage
 
+It is recommended that you fix your atomistic PDB file before converting
+using e.g. [pdbfixer](https://github.com/openmm/pdbfixer?tab=readme-ov-file).
+
 ```sh
 usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains]
 
@@ -37,4 +40,6 @@ options:
   --pH PH               pH value (default: 7.0)
   --alpha ALPHA         Excess polarizability (default: 0.0)
   --sidechains          Off-center ionizable sidechains (default: disabled)
+  --chains [CHAINS ...]
+                        List of chain IDs to include (default: all chains)
 ```
