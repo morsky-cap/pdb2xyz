@@ -1,5 +1,5 @@
 1532
-Converted with Duello pqr2xyz.py with ../tests/4F5S_pH7.0.pqr (https://github.com/mlund/pdb2xyz)
+Converted with propka pqr2xyz.py with 4F5S.pdb (https://github.com/mlund/pdb2xyz)
 ASP -50.727 1.520 -23.135
 THR -46.040 0.593 -25.273
 HIS -44.357 4.404 -22.147
