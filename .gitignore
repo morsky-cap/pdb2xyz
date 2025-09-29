@@ -14,3 +14,4 @@ testing/
 
 # Notebook
 tests/.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
