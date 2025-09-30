@@ -2,6 +2,36 @@ comment: "Calvados 3 coarse grained amino acid model for use with Duello / Faunu
 pH: 9.00
 version: 0.1.0
 atoms:
+  - {charge: 0.950, hydrophobicity: !Lambda 0, mass: 0, name: Ksc1A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.999, hydrophobicity: !Lambda 0, mass: 0, name: Rsc5A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Esc7A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.997, hydrophobicity: !Lambda 0, mass: 0, name: Ksc13A, σ: 2.0, ε: 0.8368}
+  - {charge: 1.000, hydrophobicity: !Lambda 0, mass: 0, name: Rsc14A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.005, hydrophobicity: !Lambda 0, mass: 0, name: Hsc15A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc18A, σ: 2.0, ε: 0.8368}
+  - {charge: -0.224, hydrophobicity: !Lambda 0, mass: 0, name: Tsc20A, σ: 2.0, ε: 0.8368}
+  - {charge: 1.000, hydrophobicity: !Lambda 0, mass: 0, name: Rsc21A, σ: 2.0, ε: 0.8368}
+  - {charge: -0.814, hydrophobicity: !Lambda 0, mass: 0, name: Tsc23A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.913, hydrophobicity: !Lambda 0, mass: 0, name: Ksc33A, σ: 2.0, ε: 0.8368}
+  - {charge: -0.998, hydrophobicity: !Lambda 0, mass: 0, name: Esc35A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.999, hydrophobicity: !Lambda 0, mass: 0, name: Rsc45A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc48A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc52A, σ: 2.0, ε: 0.8368}
+  - {charge: -0.004, hydrophobicity: !Lambda 0, mass: 0, name: Tsc53A, σ: 2.0, ε: 0.8368}
+  - {charge: 1.000, hydrophobicity: !Lambda 0, mass: 0, name: Rsc61A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc66A, σ: 2.0, ε: 0.8368}
+  - {charge: 1.000, hydrophobicity: !Lambda 0, mass: 0, name: Rsc68A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.999, hydrophobicity: !Lambda 0, mass: 0, name: Rsc73A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc87A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.922, hydrophobicity: !Lambda 0, mass: 0, name: Ksc96A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.976, hydrophobicity: !Lambda 0, mass: 0, name: Ksc97A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc101A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.999, hydrophobicity: !Lambda 0, mass: 0, name: Rsc112A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.999, hydrophobicity: !Lambda 0, mass: 0, name: Rsc114A, σ: 2.0, ε: 0.8368}
+  - {charge: 0.946, hydrophobicity: !Lambda 0, mass: 0, name: Ksc116A, σ: 2.0, ε: 0.8368}
+  - {charge: -1.000, hydrophobicity: !Lambda 0, mass: 0, name: Dsc119A, σ: 2.0, ε: 0.8368}
+  - {charge: 1.000, hydrophobicity: !Lambda 0, mass: 0, name: Rsc125A, σ: 2.0, ε: 0.8368}
+  - {charge: 1.000, hydrophobicity: !Lambda 0, mass: 0, name: Rsc128A, σ: 2.0, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.7407902764839954, mass: 156.19, name: ARG, σ: 6.56, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.092587557536158,  mass: 115.09, name: ASP, σ: 5.58, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.000249590539426,  mass: 129.11, name: GLU, σ: 5.92, ε: 0.8368}
