@@ -133,7 +133,7 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, chain
     with open(output_xyz_file, "w") as f:
         f.write(f"{len(residues)}\n")
         f.write(
-            f"Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n"
+            f"[TEST] Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n"
         )
         for i in residues:
             f.write(f"{i['name']} {i['cm'][0]:.3f} {i['cm'][1]:.3f} {i['cm'][2]:.3f}\n")
