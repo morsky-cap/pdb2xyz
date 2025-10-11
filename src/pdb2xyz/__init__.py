@@ -17,6 +17,7 @@
 import argparse
 import jinja2
 import mdtraj as md
+import MDAnalysis as mda
 import logging
 
 
@@ -73,57 +74,56 @@ def render_template(context: dict):
 
 def ssbonds(traj):
     """return set of cysteine indices participating in SS-bonds"""
-    bonds = traj.topology.bonds
+    bonds = traj.bonds
     ss_bonds = []
     for bond in bonds:
-        atom1, atom2 = bond
+        atom1, atom2 = bond.atoms
         if (
             atom1.name == "SG"
-            and atom1.residue.name == "CYS"
+            and atom1.resname == "CYS"
             and atom2.name == "SG"
-            and atom2.residue.name == "CYS"
+            and atom2.resname == "CYS"
         ):
-            ss_bonds.append((atom1.residue.index, atom2.residue.index))
+            ss_bonds.append((atom1.resid, atom2.resid))
     return set(res for pair in ss_bonds for res in pair)
 
 
 def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, chains=None):
     """Convert PDB to coarse grained XYZ file; one bead per amino acid"""
-    traj = md.load_pdb(pdb_file, frame=0)
-    cys_with_ssbond = ssbonds(traj)
+    traj = mda.Universe(pdb_file)
+    traj.atoms.translate(-traj.atoms.center_of_mass()) # moves COM to [0,0,0]
+
+    # keep only protein atoms and (optionally) selected chains
+    # omit hydrogen atoms
+    if chains: traj = traj.select_atoms('protein and not name H* and segid %s' % ' '.join(chains))
+    else: traj = traj.select_atoms('protein and not name H*')
+    #cys_with_ssbond = ssbonds(traj)
+
     residues = []
-    for res in traj.topology.residues:
-        if not res.is_protein:
-            continue
+    for res in traj.residues:
 
-        if chains is not None and res.chain.chain_id not in chains:
-            continue
+        cm = res.atoms.center_of_mass()  # residue mass center
+        mw = res.mass()  # residue weight
 
-        cm = [0.0, 0.0, 0.0]  # residue mass center
-        mw = 0.0  # residue weight
-        for a in res.atoms:
-            # Add N-terminal
-            if res.index == 0 and a.index == 0 and a.name == "N":
-                residues.append(dict(name="NTR", cm=traj.xyz[0][a.index] * 10))
-                logging.info("Adding N-terminal bead")
-
-            # Add C-terminal
-            if a.name == "OXT":
-                residues.append(dict(name="CTR", cm=traj.xyz[0][a.index] * 10))
-                logging.info("Adding C-terminal bead")
-
-            # Add coarse grained bead
-            cm = cm + a.element.mass * traj.xyz[0][a.index]
-            mw = mw + a.element.mass
+        # Add N-terminal and C-terminal beads
+        if res.ix == 0:
+            ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
+            residues.append(dict(name="NTR", cm=ntr.center_of_mass()))
+            logging.info("Adding N-terminal bead")
+        if 'OXT' in res.atoms.names:
+            oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
+            residues.append(dict(name="CTR", cm=oxt.center_of_mass()))
+            logging.info("Adding C-terminal bead")
 
         # rename CYS -> CSS participating in SS-bonds
-        if res.name == "CYS" and res.index in cys_with_ssbond:
+        if res.resname == "CYS" and res.resid in cys_with_ssbond:
             name = "CSS"
-            logging.info(f"Renaming SS-bonded CYS{res.index} to {name}")
+            logging.info(f"Renaming SS-bonded CYS{res.resid} to {name}")
         else:
-            name = res.name
+            name = res.resname
 
-        residues.append(dict(name=name, cm=cm / mw * 10))
+        # Add coarse grained bead
+        residues.append(dict(name=name, cm=cm))
 
         if use_sidechains and name != "CSS":
             side_chain = add_sidechain(traj, res)
@@ -148,6 +148,7 @@ def add_sidechain(traj, res):
     sidechain_map = {
         ("ASP", "OD1"): "Dsc",
         ("GLU", "OE1"): "Esc",
+        ("TYR", "OH"): "Tsc",
         ("ARG", "CZ"): "Rsc",
         ("LYS", "NZ"): "Ksc",
         ("HIS", "NE2"): "Hsc",
