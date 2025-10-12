@@ -11,7 +11,8 @@ Meant to construct models for use with the Calvados force field in the Duello an
 - N and C terminal handling
 - SS-bond handling
 - Partial charge approximation according to pH using
-[average residue pKa values](https://doi.org/10.1093/database/baz024)
+[average residue pKa values](https://doi.org/10.1093/database/baz024) or [propKa](https://github.com/jensengroup/propka)-predicted pKa values.
+- Incorporation of charges from PQR files (PDB + charge information)
 - Create Calvados3 topology for [Duello](https://github.com/mlund/duello)
 
 ## Install
@@ -25,8 +26,12 @@ pip install pdb2xyz
 It is recommended that you fix your atomistic PDB file before converting
 using e.g. [pdbfixer](https://github.com/openmm/pdbfixer?tab=readme-ov-file).
 
+Default settings use bulk pKa values; you can use [propKa](https://github.com/jensengroup/propka)-predicted values instead.
+
+It is possible to use PQR files instead of PDB files and use precomputed values of charge; these can be obtained using e.g. [pdb2pqr](https://pdb2pqr.readthedocs.io/en/latest/) or [Faunus](https://faunus.readthedocs.io/en/latest/).
+
 ```sh
-usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains]
+usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains] [--pqr] [-pKa PKAFILE]
 
 Convert PDB files to XYZ format
 
@@ -40,6 +45,9 @@ options:
   --pH PH               pH value (default: 7.0)
   --alpha ALPHA         Excess polarizability (default: 0.0)
   --sidechains          Off-center ionizable sidechains (default: disabled)
+  --pqr                 Use a PQR file instead of a PDB file (default: disabled)
+  -pKa PKAFILE, --propka PKAFILE
+                        Use file with propKa-determined pKa values (default: bulk pKa values)
   --chains [CHAINS ...]
                         List of chain IDs to include (default: all chains)
 ```
