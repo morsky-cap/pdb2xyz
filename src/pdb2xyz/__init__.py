@@ -103,7 +103,7 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, chain
     for res in traj.residues:
 
         cm = res.atoms.center_of_mass()  # residue mass center
-        mw = res.mass()  # residue weight
+        #mw = res.atoms.mass()  # residue weight
 
         # Add N-terminal and C-terminal beads
         if res.ix == 0:
