@@ -88,22 +88,27 @@ def ssbonds(traj):
     return set(res for pair in ss_bonds for res in pair)
 
 
-def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, chains=None):
+def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: bool=False, propka: str=None, chains=None):
     """Convert PDB to coarse grained XYZ file; one bead per amino acid"""
+    # load structure with MDAnalysis and move COM to origin
     traj = mda.Universe(pdb_file)
-    traj.atoms.translate(-traj.atoms.center_of_mass()) # moves COM to [0,0,0]
+    traj.atoms.translate(-traj.atoms.center_of_mass())
 
-    # keep only protein atoms and (optionally) selected chains
-    # omit hydrogen atoms
+    # keep only protein atoms and (optionally) selected chains; omit hydrogen atoms
     if chains: traj = traj.select_atoms('protein and not name H* and segid %s' % ' '.join(chains))
     else: traj = traj.select_atoms('protein and not name H*')
-    #cys_with_ssbond = ssbonds(traj)
+
+    # we need to determine bonded CYS only if we don't have PQR or PROPKA input
+    if not (pqr or propka):
+        cys_with_ssbond = ssbonds(traj)
 
     residues = []
     for res in traj.residues:
 
         cm = res.atoms.center_of_mass()  # residue mass center
-        #mw = res.atoms.mass()  # residue weight
+        mw = res.mass  # residue weight
+
+        name = res.resname
 
         # Add N-terminal and C-terminal beads
         if res.ix == 0:
@@ -116,11 +121,10 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, chain
             logging.info("Adding C-terminal bead")
 
         # rename CYS -> CSS participating in SS-bonds
-        if res.resname == "CYS" and res.resid in cys_with_ssbond:
-            name = "CSS"
-            logging.info(f"Renaming SS-bonded CYS{res.resid} to {name}")
-        else:
-            name = res.resname
+        if not (pqr or propka):
+            if res.resname == "CYS" and res.resid in cys_with_ssbond:
+                name = "CSS"
+                logging.info(f"Renaming SS-bonded CYS{res.resid} to {name}")
 
         # Add coarse grained bead
         residues.append(dict(name=name, cm=cm))
@@ -159,7 +163,7 @@ def add_sidechain(traj, res):
         if bead_name:
             return dict(name=bead_name, cm=traj.xyz[0][atom.index] * 10)
 
-    if res.name in ["ASP", "GLU", "ARG", "LYS", "HIS", "CYS"]:
+    if res.name in ["ASP", "GLU", "TYR", "ARG", "LYS", "HIS", "CYS"]:
         logging.warning(f"Missing sidechain bead for {res.name}{res.index}")
     return None
 
