@@ -90,6 +90,8 @@ def ssbonds(traj):
 
 def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: bool=False, propka: str=None, chains=None):
     """Convert PDB to coarse grained XYZ file; one bead per amino acid"""
+    assert not (pqr and propka), "Cannot use both PQR and PROPKA options"
+
     # load structure with MDAnalysis and move COM to origin
     traj = mda.Universe(pdb_file)
     traj.atoms.translate(-traj.atoms.center_of_mass())
