@@ -19,7 +19,8 @@ import jinja2
 import mdtraj as md
 import MDAnalysis as mda
 import logging
-
+import itertools
+import numpy as np
 
 def parse_args():
     """Parse command line arguments for the script."""
@@ -54,6 +55,15 @@ def parse_args():
         action="store_true",
         help="Off-center ionizable sidechains (default: disabled)",
         default=False,
+    )
+    parser.add_argument(
+        "--pqr",
+        action="store_true",
+        help="Use PQR input format (default: disabled)",
+        default=False,
+    )
+    parser.add_argument(
+        "-pka", "--propka", type=str, required=False, help="Input PROPKA file path (default: None)", default=None
     )
     # take list of chain IDs to include (list of strings)
     parser.add_argument(
@@ -139,13 +149,72 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: 
     with open(output_xyz_file, "w") as f:
         f.write(f"{len(residues)}\n")
         f.write(
-            f"[TEST] Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n"
+            f"Converted with Duello pdb2xyz.py with {pdb_file} (https://github.com/mlund/pdb2xyz)\n"
         )
         for i in residues:
             f.write(f"{i['name']} {i['cm'][0]:.3f} {i['cm'][1]:.3f} {i['cm'][2]:.3f}\n")
         logging.info(
             f"Converted {pdb_file} -> {output_xyz_file} with {len(residues)} residues."
         )
+
+
+def propka_charges(propka_file,pH):
+    """Obtain partial charges from PROPKA output file"""
+    # Read relevant section of PROPKA output file and store in result
+    with open(propka_file) as fp:
+        result = list(itertools.takewhile(lambda x: '---' not in x, 
+            itertools.dropwhile(lambda x: 'Group' not in x, fp)))
+
+    result=np.array([line.split()[:4] for line in result[1:]])
+
+    negative=['CTR','C-','ASP','GLU','TYR','CYS']
+    positive=['NTR','N+','ARG','LYS','HIS']
+
+    # Dictionary with (AA,resid,segid) as key and charge as value
+    pcr={}
+
+    for i,entry in enumerate(result):
+
+        AA=str(entry[0])
+        resid=str(entry[1])
+        segid=str(entry[2])
+        pKa=float(entry[-1])
+
+        if AA in negative: pcr[(AA,resid,segid)] = - 10**(pH-pKa) / (1 + 10**(pH-pKa))
+        elif AA in positive: pcr[(AA,resid,segid)] = 1.0 - 10**(pH-pKa) / (1 + 10**(pH-pKa))
+        else: continue
+
+    return pcr
+
+
+def bulk_charges(pH):
+    """Obtain standard charges for amino acids at given pH using bulk pKa values"""
+
+    negative=['CTR','C-','ASP','GLU','TYR','CYS']
+    positive=['NTR','N+','ARG','LYS','HIS']
+
+    # Average pKa values from https://doi.org/10.1093/database/baz024
+    pKa={
+        'CTR':3.16,
+        'C-':3.16,
+        'ASP':3.43,
+        'GLU':4.14,
+        'TYR':10.1,
+        'CYS':8.3,
+        'NTR':7.64,
+        'N+':7.64,
+        'ARG':12.5,
+        'LYS':10.68,
+        'HIS':6.45
+    }
+
+    # Dictionary with AA as key and charge as value
+    pcr={}
+
+    for AA in negative: pcr[AA] = - 10**(pH-pKa[AA]) / (1 + 10**(pH-pKa[AA]))
+    for AA in positive: pcr[AA] = 1.0 - 10**(pH-pKa[AA]) / (1 + 10**(pH-pKa[AA]))
+
+    return pcr
 
 
 def add_sidechain(traj, res):
@@ -182,7 +251,7 @@ def write_topology(output_path: str, context: dict):
 def main():
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
-    convert_pdb(args.infile, args.outfile, args.sidechains, args.chains)
+    convert_pdb(args.infile, args.outfile, args.sidechains, args.pqr, args.propka, args.chains)
 
     context = {
         "pH": args.pH,
