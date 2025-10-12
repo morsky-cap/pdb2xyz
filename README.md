@@ -30,7 +30,7 @@ Default settings use bulk pKa values; you can use [propKa](https://github.com/je
 It is possible to use PQR files instead of PDB files and use precomputed values of charge; these can be obtained using e.g. [pdb2pqr](https://pdb2pqr.readthedocs.io/en/latest/) or [Faunus](https://faunus.readthedocs.io/en/latest/).
 
 ```sh
-usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains]
+usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains] [--pKa] [-pka PKAFILE]
 
 Convert PDB files to XYZ format
 
@@ -44,6 +44,9 @@ options:
   --pH PH               pH value (default: 7.0)
   --alpha ALPHA         Excess polarizability (default: 0.0)
   --sidechains          Off-center ionizable sidechains (default: disabled)
+  --pqr                 Use a PQR file instead of a PDB file (default: disabled)
+  -pka PKAFILE, --propka PKAFILE
+                        Use file with propKa-determined pKa values (default: bulk pKa values)
   --chains [CHAINS ...]
                         List of chain IDs to include (default: all chains)
 ```
