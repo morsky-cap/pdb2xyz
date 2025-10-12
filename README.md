@@ -25,6 +25,10 @@ pip install pdb2xyz
 It is recommended that you fix your atomistic PDB file before converting
 using e.g. [pdbfixer](https://github.com/openmm/pdbfixer?tab=readme-ov-file).
 
+Default settings use bulk pKa values; you can use [propKa](https://github.com/jensengroup/propka)-predicted values instead.
+
+It is possible to use PQR files instead of PDB files and use those values of charge; these can be obtained using e.g. [pdb2pqr](https://pdb2pqr.readthedocs.io/en/latest/) or [Faunus](https://faunus.readthedocs.io/en/latest/).
+
 ```sh
 usage: pdb2xyz [-h] -i INFILE -o OUTFILE [-t TOP] [--pH PH] [--alpha ALPHA] [--sidechains]
 
