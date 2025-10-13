@@ -16,7 +16,6 @@
 
 import argparse
 import jinja2
-import mdtraj as md
 import MDAnalysis as mda
 import logging
 import itertools
@@ -104,7 +103,7 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
 
     # load structure with MDAnalysis and move COM to origin
     traj = mda.Universe(pdb_file)
-    #traj.atoms.translate(-traj.atoms.center_of_mass())
+    traj.atoms.translate(-traj.atoms.center_of_mass())
 
     # keep only protein atoms and (optionally) selected chains; omit hydrogen atoms
     if chains: traj = traj.select_atoms('protein and not name H* and segid %s' % ' '.join(chains))
@@ -118,6 +117,9 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
     if not (pqr or propka): pcr = bulk_charges(pH)
     # load partial charges via propKa
     if propka: pcr = propka_charges(propka,pH)
+
+    # labels and (optionally) positions for charged amino acids
+    charge_map = add_charges(use_sidechains)
 
     residues = []
     charges = {}
@@ -138,22 +140,9 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
 
         # Add coarse grained bead for non-electrostatic part of the interaction
         residues.append(dict(name=name, cm=cm))
-        
-        '''
-        # Add N-terminal and C-terminal beads
-        if res.ix == 0:
-            ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
-            residues.append(dict(name="NTR", cm=ntr.center_of_mass()))
-            logging.info("Adding N-terminal bead")
-        if 'OXT' in res.atoms.names:
-            oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
-            residues.append(dict(name="CTR", cm=oxt.center_of_mass()))
-            logging.info("Adding C-terminal bead")
-        '''
 
         ### Electrostatic part of the interaction
 
-        charge_map = add_charges(use_sidechains)
         pqr_flag=False
 
         # charges via PQR
