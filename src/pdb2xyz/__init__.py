@@ -330,10 +330,10 @@ def add_charges(use_sidechains=False):
     return charge_map
 
 
-def write_topology(output_path: str, context: dict):
+def write_topology(output_path: str, context: dict, cdict: dict):
     """Render and write the topology template."""
     template = calvados_template()
-    rendered = jinja2.Template(template).render(context)
+    rendered = jinja2.Template(template).render(context,cdict=cdict)
     with open(output_path, "w") as file:
         file.write(rendered)
         logging.info(f"Topology written to {output_path}")
@@ -349,8 +349,8 @@ def main():
         "alpha": args.alpha,
         "sidechains": args.sidechains,
     }
-    write_topology(args.top, context)
-
+    write_topology(args.top, context, cdict=charges)
+    
 
 # Average pKa values from https://doi.org/10.1093/database/baz024
 def calvados_template():
@@ -362,7 +362,11 @@ sidechains: {{ sidechains }}
 version: 0.1.0
 atoms:
 {% for name, charge in cdict.items() -%}
-  - {charge: {{ "%.2f" % charge }}, hydrophobicity: !Lambda 0, mass: 0, name: {{ "%s" % name }}, σ: 2.0, ε: 0.8368} | join('\n')
+{%- if not loop.last -%}
+{{"  - "}}{charge: {{ "%.2f" % charge }}, hydrophobicity: !Lambda 0, mass: 0, name: {{ "%s" % name }}, σ: 2.0, ε: 0.8368}{{"\n"}}
+{%- else -%}
+{{"  - "}}{charge: {{ "%.2f" % charge }}, hydrophobicity: !Lambda 0, mass: 0, name: {{ "%s" % name }}, σ: 2.0, ε: 0.8368}
+{%- endif -%}
 {%- endfor %}
   - {charge: 0.0, hydrophobicity: !Lambda 0.7407902764839954, mass: 156.19, name: ARG, σ: 6.56, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
   - {charge: 0.0, hydrophobicity: !Lambda 0.092587557536158,  mass: 115.09, name: ASP, σ: 5.58, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
