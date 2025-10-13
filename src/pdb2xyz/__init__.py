@@ -164,35 +164,16 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
         if abs(chr_) >= 1e-3:
             bead_name, atom_name = charge_map.get(name,(None,None))
             
-            # standard ionizable amino acid
-            if bead_name:
+            if (pqr or propka): bn = '%s%i%s' % (bead_name,res.resid,res.segid)
+            else: bn = '%s' % bead_name
 
-                if (pqr or propka): bn = '%s%i%s' % (bead_name,res.resid,res.segid)
-                else: bn = '%s' % bead_name
+            # charge beads at the same positions as amino acid beads
+            if not atom_name: residues.append(dict(name=bn, cm=cm))            
+            # charge beads positioned at amino acid sidechains
+            else: residues.append(dict(name=bn, cm=traj.select_atoms('resid %i and name %s' % (res.resid,atom_name)).positions[0]))
 
-                # charge beads at the same positions as amino acid beads
-                if not atom_name: residues.append(dict(name=bn, cm=cm))            
-                # charge beads positioned at amino acid sidechains
-                else: residues.append(dict(name=bn, cm=traj.select_atoms('resid %i and name %s' % (res.resid,atom_name)).positions[0]))
-
-                charges[bn] = chr_
-
-            # else: N- or C-terminal charge
-            else:
-                if res.ix == 0:
-                    bn="N+"
-                    ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
-                    residues.append(dict(name=bn, cm=ntr.center_of_mass()))
-                    charges[bn] = chr_
-                elif 'OXT' in res.atoms.names:
-                    bn="C-"
-                    oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
-                    residues.append(dict(name=bn, cm=oxt.center_of_mass()))
-                    charges[bn] = chr_
-                else:
-                    logging.warning(f"There is a charge which is unaccounted for")
-                    continue
-
+            charges[bn] = chr_
+            
             # PQR: we might have an ionizable amino acid with an additional terminal charge
             if pqr_flag:
                 if res.ix == 0:
@@ -206,18 +187,28 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
                     residues.append(dict(name=bn, cm=oxt.center_of_mass()))
                     charges[bn] = chr_
 
-        # bulk pKa: we need to add terminal charges separately
-        if not (pqr or propka):
+        # charge via pKa: we need to add terminal charges separately
+        if not pqr:
             if res.ix == 0:
                 bn="N+"
                 ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
                 residues.append(dict(name=bn, cm=ntr.center_of_mass()))
-                charges[bn] = pcr.get(bn,0.0)
+                if not propka:
+                    chr_ = pcr.get(bn,0.0)
+                    if abs(chr_) >= 1e-3: charges[bn] = chr_
+                else:
+                    chr_ = pcr.get((bn,res.resid,res.segid),0.0)
+                    if abs(chr_) >= 1e-3: charges[bn] = chr_
             if 'OXT' in res.atoms.names:
                 bn="C-"
                 oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
                 residues.append(dict(name=bn, cm=oxt.center_of_mass()))
-                charges[bn] = pcr.get(bn,0.0)
+                if not propka:
+                    chr_ = pcr.get(bn,0.0)
+                    if abs(chr_) >= 1e-3: charges[bn] = chr_
+                else:
+                    chr_ = pcr.get((bn,res.resid,res.segid),0.0)
+                    if abs(chr_) >= 1e-3: charges[bn] = chr_
 
     ### Output: write XYZ and return dictionary of charges
 
