@@ -98,13 +98,13 @@ def ssbonds(traj):
     return set(res for pair in ss_bonds for res in pair)
 
 
-def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: bool=False, propka: str=None, chains=None):
+def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechains: bool=False, pqr: bool=False, propka: str=None, chains=None):
     """Convert PDB to coarse grained XYZ file; one bead per amino acid"""
     assert not (pqr and propka), "Cannot use both PQR and PROPKA options"
 
     # load structure with MDAnalysis and move COM to origin
     traj = mda.Universe(pdb_file)
-    traj.atoms.translate(-traj.atoms.center_of_mass())
+    #traj.atoms.translate(-traj.atoms.center_of_mass())
 
     # keep only protein atoms and (optionally) selected chains; omit hydrogen atoms
     if chains: traj = traj.select_atoms('protein and not name H* and segid %s' % ' '.join(chains))
@@ -114,14 +114,32 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: 
     if not (pqr or propka):
         cys_with_ssbond = ssbonds(traj)
 
+    # load partial charges via bulk pKa
+    if not (pqr or propka): pcr = bulk_charges(pH)
+    # load partial charges via propKa
+    if propka: pcr = propka_charges(propka,pH)
+
     residues = []
+    charges = {}
     for res in traj.residues:
 
-        cm = res.atoms.center_of_mass()  # residue mass center
-        mw = res.mass  # residue weight
+        cm = res.atoms.center_of_mass() # residue mass center
+        mw = res.mass # residue weight
 
         name = res.resname
 
+        ### Non-electrostatic part of the interaction
+
+        # rename CYS -> CSS participating in SS-bonds
+        if not (pqr or propka):
+            if res.resname == "CYS" and res.resid in cys_with_ssbond:
+                name = "CSS"
+                logging.info(f"Renaming SS-bonded CYS{res.resid} to {name}")
+
+        # Add coarse grained bead for non-electrostatic part of the interaction
+        residues.append(dict(name=name, cm=cm))
+        
+        '''
         # Add N-terminal and C-terminal beads
         if res.ix == 0:
             ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
@@ -131,20 +149,88 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: 
             oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
             residues.append(dict(name="CTR", cm=oxt.center_of_mass()))
             logging.info("Adding C-terminal bead")
+        '''
 
-        # rename CYS -> CSS participating in SS-bonds
+        ### Electrostatic part of the interaction
+
+        charge_map = add_charges(use_sidechains)
+        pqr_flag=False
+
+        # charges via PQR
+        if pqr:
+            chr_ = 0.0
+            for atom in res.atoms: chr_ += np.float32(atom.charge) # the integrated function in MDAnalysis has rounding errors
+            # we can have a charged sidechain with terminal charge
+            if abs(chr_) > 1.001:
+                chr_=float(np.sign(chr_))
+                pqr_flag=True
+        # charges via propKa
+        elif propka:
+            chr_ = pcr.get((name,str(res.resid),res.segid),0.0)
+        # default: charges via bulk pKa
+        else:
+            chr_ = pcr.get(name,0.0)
+
+        # consider only charges above some cutoff
+        if abs(chr_) >= 1e-3:
+            bead_name, atom_name = charge_map.get(name,(None,None))
+            
+            # standard ionizable amino acid
+            if bead_name:
+
+                if (pqr or propka): bn = '%s%i%s' % (bead_name,res.resid,res.segid)
+                else: bn = '%s' % bead_name
+
+                # charge beads at the same positions as amino acid beads
+                if not atom_name: residues.append(dict(name=bn, cm=cm))            
+                # charge beads positioned at amino acid sidechains
+                else: residues.append(dict(name=bn, cm=traj.select_atoms('resid %i and name %s' % (res.resid,atom_name)).positions[0]))
+
+                charges[bn] = chr_
+
+            # else: N- or C-terminal charge
+            else:
+                if res.ix == 0:
+                    bn="N+"
+                    ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
+                    residues.append(dict(name=bn, cm=ntr.center_of_mass()))
+                    charges[bn] = chr_
+                elif 'OXT' in res.atoms.names:
+                    bn="C-"
+                    oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
+                    residues.append(dict(name=bn, cm=oxt.center_of_mass()))
+                    charges[bn] = chr_
+                else:
+                    logging.warning(f"There is a charge which is unaccounted for")
+                    continue
+
+            # PQR: we might have an ionizable amino acid with an additional terminal charge
+            if pqr_flag:
+                if res.ix == 0:
+                    bn="N+"
+                    ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
+                    residues.append(dict(name=bn, cm=ntr.center_of_mass()))
+                    charges[bn] = chr_
+                if 'OXT' in res.atoms.names:
+                    bn="C-"
+                    oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
+                    residues.append(dict(name=bn, cm=oxt.center_of_mass()))
+                    charges[bn] = chr_
+
+        # bulk pKa: we need to add terminal charges separately
         if not (pqr or propka):
-            if res.resname == "CYS" and res.resid in cys_with_ssbond:
-                name = "CSS"
-                logging.info(f"Renaming SS-bonded CYS{res.resid} to {name}")
+            if res.ix == 0:
+                bn="N+"
+                ntr = traj.select_atoms('atom %s %s N' % (res.segid, res.resid))
+                residues.append(dict(name=bn, cm=ntr.center_of_mass()))
+                charges[bn] = pcr.get(bn,0.0)
+            if 'OXT' in res.atoms.names:
+                bn="C-"
+                oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
+                residues.append(dict(name=bn, cm=oxt.center_of_mass()))
+                charges[bn] = pcr.get(bn,0.0)
 
-        # Add coarse grained bead
-        residues.append(dict(name=name, cm=cm))
-
-        if use_sidechains and name != "CSS":
-            side_chain = add_sidechain(traj, res)
-            if side_chain is not None:
-                residues.append(side_chain)
+    ### Output: write XYZ and return dictionary of charges
 
     with open(output_xyz_file, "w") as f:
         f.write(f"{len(residues)}\n")
@@ -157,6 +243,8 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, use_sidechains: bool, pqr: 
             f"Converted {pdb_file} -> {output_xyz_file} with {len(residues)} residues."
         )
 
+    return charges
+
 
 def propka_charges(propka_file,pH):
     """Obtain partial charges from PROPKA output file"""
@@ -167,8 +255,8 @@ def propka_charges(propka_file,pH):
 
     result=np.array([line.split()[:4] for line in result[1:]])
 
-    negative=['CTR','C-','ASP','GLU','TYR','CYS']
-    positive=['NTR','N+','ARG','LYS','HIS']
+    negative=['C-','ASP','GLU','TYR','CYS']
+    positive=['N+','ARG','LYS','HIS']
 
     # Dictionary with (AA,resid,segid) as key and charge as value
     pcr={}
@@ -190,18 +278,16 @@ def propka_charges(propka_file,pH):
 def bulk_charges(pH):
     """Obtain standard charges for amino acids at given pH using bulk pKa values"""
 
-    negative=['CTR','C-','ASP','GLU','TYR','CYS']
-    positive=['NTR','N+','ARG','LYS','HIS']
+    negative=['C-','ASP','GLU','TYR','CYS']
+    positive=['N+','ARG','LYS','HIS']
 
     # Average pKa values from https://doi.org/10.1093/database/baz024
     pKa={
-        'CTR':3.16,
         'C-':3.16,
         'ASP':3.43,
         'GLU':4.14,
         'TYR':10.1,
         'CYS':8.3,
-        'NTR':7.64,
         'N+':7.64,
         'ARG':12.5,
         'LYS':10.68,
@@ -217,26 +303,31 @@ def bulk_charges(pH):
     return pcr
 
 
-def add_sidechain(traj, res):
-    """Add sidechain bead for ionizable amino acids"""
-    # Map residue and atom names to sidechain bead names
-    sidechain_map = {
-        ("ASP", "OD1"): "Dsc",
-        ("GLU", "OE1"): "Esc",
-        ("TYR", "OH"): "Tsc",
-        ("ARG", "CZ"): "Rsc",
-        ("LYS", "NZ"): "Ksc",
-        ("HIS", "NE2"): "Hsc",
-        ("CYS", "SG"): "Csc",
-    }
-    for atom in res.atoms:
-        bead_name = sidechain_map.get((res.name, atom.name))
-        if bead_name:
-            return dict(name=bead_name, cm=traj.xyz[0][atom.index] * 10)
-
-    if res.name in ["ASP", "GLU", "TYR", "ARG", "LYS", "HIS", "CYS"]:
-        logging.warning(f"Missing sidechain bead for {res.name}{res.index}")
-    return None
+def add_charges(use_sidechains=False):
+    """Add charge bead for ionizable amino acids"""
+    if not use_sidechains:
+        charge_map = {
+            "ASP": ("Dch", None),
+            "GLU": ("Ech", None),
+            "TYR": ("Tch", None),
+            "ARG": ("Rch", None),
+            "LYS": ("Kch", None),
+            "HIS": ("Hch", None),
+            "CYS": ("Cch", None),
+        }
+    # Map residue to sidechain bead names and charged atoms
+    else:
+        charge_map = {
+            "ASP": ("Dsc", "OD1"),
+            "GLU": ("Esc", "OE1"),
+            "TYR": ("Tsc", "OH"),
+            "ARG": ("Rsc", "CZ"),
+            "LYS": ("Ksc", "NZ"),
+            "HIS": ("Hsc", "NE2"),
+            "CYS": ("Csc", "SG"),
+        }
+    
+    return charge_map
 
 
 def write_topology(output_path: str, context: dict):
@@ -251,7 +342,7 @@ def write_topology(output_path: str, context: dict):
 def main():
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
-    convert_pdb(args.infile, args.outfile, args.sidechains, args.pqr, args.propka, args.chains)
+    charges=convert_pdb(args.infile, args.outfile, args.sidechains, args.pqr, args.propka, args.chains)
 
     context = {
         "pH": args.pH,
@@ -265,34 +356,19 @@ def main():
 def calvados_template():
     return """
 {%- set f = 1.0 - sidechains -%}
-{%- set zCTR = - 10**(pH-3.16) / (1 + 10**(pH-3.16)) -%}
-{%- set zASP = - 10**(pH-3.43) / (1 + 10**(pH-3.43)) -%}
-{%- set zGLU = - 10**(pH-4.14) / (1 + 10**(pH-4.14)) -%}
-{%- set zCYS = 10**(pH-6.25) / (1 + 10**(pH-6.25)) -%}
-{%- set zHIS = 1 - 10**(pH-6.45) / (1 + 10**(pH-6.45)) -%}
-{%- set zNTR = 1 - 10**(pH-7.64) / (1 + 10**(pH-7.64)) -%}
-{%- set zLYS = 1 - 10**(pH-10.68) / (1 + 10**(pH-10.68)) -%}
-{%- set zARG = 1 - 10**(pH-12.5) / (1 + 10**(pH-12.5)) -%}
 comment: "Calvados 3 coarse grained amino acid model for use with Duello / Faunus"
 pH: {{ pH }}
 sidechains: {{ sidechains }}
 version: 0.1.0
 atoms:
-  - {charge: {{ "%.2f" % zCTR }}, hydrophobicity: !Lambda 0, mass: 0, name: CTR, σ: 2.0, ε: 0.8368}
-  - {charge: {{ "%.2f" % zNTR }}, hydrophobicity: !Lambda 0, mass: 0, name: NTR, σ: 2.0, ε: 0.8368}
-{%- if sidechains %}
-  - {charge: {{ "%.2f" % zGLU }}, hydrophobicity: !Lambda 0, mass: 0, name: Esc, σ: 2.0, ε: 0.8368}
-  - {charge: {{ "%.2f" % zASP }}, hydrophobicity: !Lambda 0, mass: 0, name: Dsc, σ: 2.0, ε: 0.8368}
-  - {charge: {{ "%.2f" % zHIS }}, hydrophobicity: !Lambda 0, mass: 0, name: Hsc, σ: 2.0, ε: 0.8368}
-  - {charge: {{ "%.2f" % zARG }}, hydrophobicity: !Lambda 0, mass: 0, name: Rsc, σ: 2.0, ε: 0.8368}
-  - {charge: {{ "%.2f" % zLYS }}, hydrophobicity: !Lambda 0, mass: 0, name: Ksc, σ: 2.0, ε: 0.8368}
-  - {charge: {{ "%.2f" % zCYS }}, hydrophobicity: !Lambda 0, mass: 0, name: Csc, σ: 2.0, ε: 0.8368}
-{%- endif %}
-  - {charge: {{ "%.2f" % (zARG * f) }}, hydrophobicity: !Lambda 0.7407902764839954, mass: 156.19, name: ARG, σ: 6.56, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
-  - {charge: {{ "%.2f" % (zASP * f) }}, hydrophobicity: !Lambda 0.092587557536158,  mass: 115.09, name: ASP, σ: 5.58, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
-  - {charge: {{ "%.2f" % (zGLU * f) }}, hydrophobicity: !Lambda 0.000249590539426,  mass: 129.11, name: GLU, σ: 5.92, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
-  - {charge: {{ "%.2f" % (zLYS * f) }}, hydrophobicity: !Lambda 0.1380602542039267, mass: 128.17, name: LYS, σ: 6.36, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
-  - {charge: {{ "%.2f" % (zHIS * f) }}, hydrophobicity: !Lambda 0.4087176216525476, mass: 137.14, name: HIS, σ: 6.08, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
+{% for name, charge in cdict.items() -%}
+  - {charge: {{ "%.2f" % charge }}, hydrophobicity: !Lambda 0, mass: 0, name: {{ "%s" % name }}, σ: 2.0, ε: 0.8368} | join('\n')
+{%- endfor %}
+  - {charge: 0.0, hydrophobicity: !Lambda 0.7407902764839954, mass: 156.19, name: ARG, σ: 6.56, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
+  - {charge: 0.0, hydrophobicity: !Lambda 0.092587557536158,  mass: 115.09, name: ASP, σ: 5.58, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
+  - {charge: 0.0, hydrophobicity: !Lambda 0.000249590539426,  mass: 129.11, name: GLU, σ: 5.92, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
+  - {charge: 0.0, hydrophobicity: !Lambda 0.1380602542039267, mass: 128.17, name: LYS, σ: 6.36, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
+  - {charge: 0.0, hydrophobicity: !Lambda 0.4087176216525476, mass: 137.14, name: HIS, σ: 6.08, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
   - {charge: 0.0, hydrophobicity: !Lambda 0.3706962163690402, mass: 114.1,  name: ASN, σ: 5.68, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.3143449791669133, mass: 128.13, name: GLN, σ: 6.02, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.4473142572693176, mass: 87.08,  name: SER, σ: 5.18, ε: 0.8368}
@@ -307,7 +383,7 @@ atoms:
   - {charge: 0.0, hydrophobicity: !Lambda 0.5130398874425708, mass: 113.16, name: ILE, σ: 6.18, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.3469777523519372, mass: 97.12,  name: PRO, σ: 5.56, ε: 0.8368}
   - {charge: 0.0, hydrophobicity: !Lambda 0.8906449355499866, mass: 147.18, name: PHE, σ: 6.36, ε: 0.8368}
-  - {charge: {{ "%.2f" % (zCYS * f) }}, hydrophobicity: !Lambda 0.5922529084601322, mass: 103.14, name: CYS, σ: 5.48, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
+  - {charge: 0.0, hydrophobicity: !Lambda 0.5922529084601322, mass: 103.14, name: CYS, σ: 5.48, ε: 0.8368, custom: {alpha: {{ f * alpha }}}}
   - {charge: 0.0, hydrophobicity: !Lambda 0.5922529084601322, mass: 103.14, name: CSS, σ: 5.48, ε: 0.8368}
 
 system:
