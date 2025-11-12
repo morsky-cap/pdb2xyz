@@ -101,13 +101,18 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
     """Convert PDB to coarse grained XYZ file; one bead per amino acid"""
     assert not (pqr and propka), "Cannot use both PQR and PROPKA options"
 
-    # load structure with MDAnalysis and move COM to origin
+    # minimum absolute charge to consider
+    charge_cutoff = 1e-2
+
+    # load structure with MDAnalysis
     traj = mda.Universe(pdb_file)
-    traj.atoms.translate(-traj.atoms.center_of_mass())
 
     # keep only protein atoms and (optionally) selected chains; omit hydrogen atoms
     if chains: traj = traj.select_atoms('protein and not name H* and segid %s' % ' '.join(chains))
     else: traj = traj.select_atoms('protein and not name H*')
+
+    # move center of mass to origin
+    traj.atoms.translate(-traj.atoms.center_of_mass())
 
     # we need to determine bonded CYS only if we don't have PQR or PROPKA input
     if not (pqr or propka):
@@ -155,7 +160,7 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
             chr_ = pcr.get(name,0.0)
 
         # consider only charges above some cutoff
-        if abs(chr_) >= 1e-3:
+        if abs(chr_) >= charge_cutoff:
             bead_name, atom_name = charge_map.get(name,(None,None))
 
             # PQR: we might have a non-ionizable amino acid with a terminal charge
@@ -181,20 +186,20 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
                 residues.append(dict(name=bn, cm=ntr.center_of_mass()))
                 if not propka:
                     chr_ = pcr.get(bn,0.0)
-                    if abs(chr_) >= 1e-3: charges[bn] = chr_
+                    if abs(chr_) >= charge_cutoff: charges[bn] = chr_
                 else:
                     chr_ = pcr.get((bn,str(res.resid),res.segid),0.0)
-                    if abs(chr_) >= 1e-3: charges[bn] = chr_
+                    if abs(chr_) >= charge_cutoff: charges[bn] = chr_
             if 'OXT' in res.atoms.names:
                 bn="C-"
                 oxt = traj.select_atoms('atom %s %s OXT' % (res.segid, res.resid))
                 residues.append(dict(name=bn, cm=oxt.center_of_mass()))
                 if not propka:
                     chr_ = pcr.get(bn,0.0)
-                    if abs(chr_) >= 1e-3: charges[bn] = chr_
+                    if abs(chr_) >= charge_cutoff: charges[bn] = chr_
                 else:
                     chr_ = pcr.get((bn,str(res.resid),res.segid),0.0)
-                    if abs(chr_) >= 1e-3: charges[bn] = chr_
+                    if abs(chr_) >= charge_cutoff: charges[bn] = chr_
 
     ### Output: write XYZ and return dictionary of charges
 
