@@ -148,6 +148,8 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
 
         ### Electrostatic part of the interaction
 
+        print('kuku')
+
         # charges via PQR
         if pqr:
             chr_ = 0.0
@@ -164,15 +166,14 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
             bead_name, atom_name = charge_map.get(name,(None,None))
 
             # PQR: we might have a non-ionizable amino acid with a terminal charge
-            if pqr and not bead_name:
-                bn = 'TRC%i%s' % (res.resid,res.segid)
-                residues.append(dict(name=bn, cm=cm))
-            
+            if pqr and not bead_name: bn = 'TRC%i%s' % (res.resid,res.segid)
             elif (pqr or propka): bn = '%s%i%s' % (bead_name,res.resid,res.segid)
             else: bn = '%s' % bead_name
 
+            # PQR: we might have a non-ionizable amino acid with a terminal charge
+            if pqr and not bead_name: residues.append(dict(name=bn, cm=cm))
             # charge beads at the same positions as amino acid beads
-            if not atom_name: residues.append(dict(name=bn, cm=cm))            
+            elif not atom_name: residues.append(dict(name=bn, cm=cm))            
             # charge beads positioned at amino acid sidechains
             else: residues.append(dict(name=bn, cm=traj.select_atoms('resid %i and name %s' % (res.resid,atom_name)).positions[0]))
 
