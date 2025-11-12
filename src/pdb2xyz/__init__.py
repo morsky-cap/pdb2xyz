@@ -148,8 +148,6 @@ def convert_pdb(pdb_file: str, output_xyz_file: str, pH: float=7.0, use_sidechai
 
         ### Electrostatic part of the interaction
 
-        print('kuku')
-
         # charges via PQR
         if pqr:
             chr_ = 0.0
